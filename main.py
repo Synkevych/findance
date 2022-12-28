@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import constants as keys
 from telegram.ext import *
 import responses as R
