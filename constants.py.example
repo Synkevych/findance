@@ -1,5 +1,0 @@
-API_KEY = api_key
-DB_PASSWORD = password
-DB_HOST = host_address
-DB_USER = user_name
-DB_NAME = database_name
