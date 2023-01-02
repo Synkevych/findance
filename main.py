@@ -15,13 +15,21 @@ def start_command(update, context):
 
 def help_command(update, context):
   update.message.reply_text('This bot will help you calculate all your expenses and incomes per month.')
-  update.message.reply_text('Example of add a new expense: 20/12/2022 - 200 food,apple ATB')
+  update.message.reply_text('Example of add a new expense: 20/12/2022 - 200 food,apple')
 
 def expense_command(update, context):
   user_id = update.message.chat.id
-  amount = R.get_expenses_by_month(user_id)
-  update.message.reply_text(
-      'In <b>' + today.strftime("%B %Y") + "</b> you spent <b>₴" + str(int(amount)) + "</b>.", parse_mode='HTML')
+  expenses = R.get_expenses_by_month(user_id)
+  response_message = 'In <b>' + today.strftime("%B %Y") + "</b > you spent:\n\nid | day | amount | categories \n"
+  sum_amount = 0
+  for count, expense in enumerate(expenses, start=1):
+    response_message = response_message + \
+        str(count).ljust(6, ' ') + expense[0].strftime("%-d").ljust(7, ' ') + \
+        str(expense[1]).ljust(9, ' ') + ' ' + ', '.join(expense[2]) + ' \n'
+    sum_amount += expense[1]
+  response_message += "\nThe sum of all expenses <b>₴" + \
+      str(sum_amount) + "</b>."
+  update.message.reply_text(response_message, parse_mode='HTML')
 
 def income_command(update, context):
   user_id = update.message.chat.id
@@ -44,7 +52,6 @@ def error(update, context):
 def main():
   updater = Updater(keys.API_KEY, use_context=True)
   dp = updater.dispatcher
-
   dp.add_handler(CommandHandler("start", start_command))
   dp.add_handler(CommandHandler("help", help_command))
   dp.add_handler(CommandHandler("expense", expense_command))
@@ -57,4 +64,5 @@ def main():
   updater.start_polling()
   updater.idle()
 
-main()
+if __name__ == '__main__':
+    main()

@@ -42,16 +42,14 @@ def get_expenses_by_month(user_id):
                                   password=keys.DB_PASSWORD, host=keys.DB_HOST, port='5432')
     cursor = connection.cursor()
 
-    get_expenses_query = """ WITH expenses_2 (spent_at, amount) AS (SELECT spent_at, amount, user_id from expenses WHERE user_id = %s AND spent_at BETWEEN %s AND %s ) SELECT SUM(amount) AS total_expenses from expenses_2 """
+    get_expenses_query = """ select spent_at, amount, categories from expenses where user_id = %s AND spent_at BETWEEN %s AND %s order by created_at desc limit 20; """
     record_to_insert = (user_id,
                         start_date.strftime("%Y-%m-%d"),
                         end_date.strftime("%Y-%m-%d"))
     cursor.execute(get_expenses_query, record_to_insert)
 
     connection.commit()
-    amount = cursor.fetchone()
-    print("For month you spend ₴" + str(amount[0]) + ".")
-    return amount[0] or 0
+    return cursor.fetchall()
 
   except (Exception, psycopg2.Error) as error:
       print("Failed to execute SQL", error)
@@ -114,8 +112,14 @@ def prepare_args(user_id, created_at, operation_type, amount, categories, commen
 
 def sample_responses(input_text, user_id):
   user_message = str(input_text).lower()
-
+  re_date = "((\d{1,2})+\/+(\d{1,2})+\/+(\d{4})+\s)"
+  re_type = "([\-|\+])+\s"
+  re_amount = "+((\d{1,})+(([\.]{1,})+[\d]{1})?)+\s"
+  re_category = "+([\w,-]{1,})"
+  re_comment = "+\s+([\w]{1,})"
+# comment = re.findall(r"\"(.*?)\"", user_message)
   if user_message in ("hello", "hi", "привіт"):
+    # print('user message:', user_message)
     return "Hey! How's it going?"
 
   if user_message in ("time", "time?"):
@@ -123,21 +127,21 @@ def sample_responses(input_text, user_id):
     date_time = now.strftime("%d/%m/%y")
     return str(date_time)
 
-  if re.match("((\d{1,2})+\/+(\d{1,2})+\/+(\d{4})+\s)+[\-|\+]+\s+(\d{1,})+\s+(\S{1,})+\s+[\w\s]{3,}", user_message):
+  if re.match(re_date+re_type+re_amount+re_category+re_comment, user_message):
     created_at, operation_type, amount, categories, comment = re.split("\s", user_message, 4)
     created_at = datetime.strptime(created_at, '%d/%m/%Y')
     return prepare_args(user_id, created_at, operation_type, amount, categories, comment)
 
-  if re.match("((\d{1,2})+\/+(\d{1,2})+\/+(\d{4})+\s)+[\-|\+]+\s+(\d{1,})+\s+\S{1,}", user_message):
+  if re.match(re_date+re_type+re_amount+re_category, user_message):
     created_at, operation_type, amount, categories = re.split("\s", user_message, 3)
     created_at = datetime.strptime(created_at, '%d/%m/%Y')
     return prepare_args(user_id, created_at, operation_type, amount, categories)
 
-  if re.match("^[\-|\+]+\s+(\d{1,})+\s+([\w,]{1,})+\s+[\w\s]{3,}", user_message):
+  if re.match(re_type+re_amount+re_category+re_comment, user_message):
     operation_type, amount, categories, comment = re.split("\s", user_message, 3)
     return prepare_args(user_id, today, operation_type, amount, categories, comment)
 
-  if re.match("^[\-|\+]+\s+(\d{1,})+\s+\S{1,}", user_message):
+  if re.match(re_type+re_amount+re_category, user_message):
     operation_type, amount, categories = re.split("\s", user_message, 2)
     return prepare_args(user_id, today, operation_type, amount, categories)
 
