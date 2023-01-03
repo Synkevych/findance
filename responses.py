@@ -69,6 +69,7 @@ def get_incomes_by_month(user_id):
     cursor = connection.cursor()
 
     get_expenses_query = """ WITH incomes_2 (earned_at, amount) AS (SELECT earned_at, amount, user_id FROM incomes WHERE user_id = %s AND earned_at BETWEEN %s AND %s) SELECT SUM(amount) AS total_incomes FROM incomes_2; """
+    get_expenses_query = """ select earned_at,amount,categories from incomes where user_id = %s AND earned_at BETWEEN %s AND %s order by created_at desc limit 10; """
     record_to_insert = (user_id, start_date.strftime(
         "%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
     cursor.execute(get_expenses_query, record_to_insert)
