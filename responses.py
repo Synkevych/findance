@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-
-from datetime import datetime, timedelta, date
+from datetime import datetime
 import constants as keys
 import psycopg2
 import re
 
 today = datetime.now()
-start_date = today.replace(day=1)
-end_date = date(start_date.year + int(start_date.month/12),
-                start_date.month % 12+1, 1) - timedelta(days=1)
 
 def push_to_db(query, record_to_insert):
   try:
@@ -36,16 +31,14 @@ def push_to_db(query, record_to_insert):
           print("PostgreSQL connection is closed")
 
 
-def get_expenses_by_month(user_id):
+def get_expenses_by_month(user_id, start_date, end_date):
   try:
     connection = psycopg2.connect(database=keys.DB_NAME, user=keys.DB_USER,
                                   password=keys.DB_PASSWORD, host=keys.DB_HOST, port='5432')
     cursor = connection.cursor()
 
     get_expenses_query = """ select spent_at, amount, categories from expenses where user_id = %s AND spent_at BETWEEN %s AND %s order by created_at desc limit 20; """
-    record_to_insert = (user_id,
-                        start_date.strftime("%Y-%m-%d"),
-                        end_date.strftime("%Y-%m-%d"))
+    record_to_insert = (user_id, start_date, end_date)
     cursor.execute(get_expenses_query, record_to_insert)
 
     connection.commit()
@@ -62,22 +55,18 @@ def get_expenses_by_month(user_id):
           print("PostgreSQL connection is closed")
 
 
-def get_incomes_by_month(user_id):
+def get_incomes_by_month(user_id, start_date, end_date):
   try:
     connection = psycopg2.connect(database=keys.DB_NAME, user=keys.DB_USER,
                                   password=keys.DB_PASSWORD, host=keys.DB_HOST, port='5432')
     cursor = connection.cursor()
 
-    get_expenses_query = """ WITH incomes_2 (earned_at, amount) AS (SELECT earned_at, amount, user_id FROM incomes WHERE user_id = %s AND earned_at BETWEEN %s AND %s) SELECT SUM(amount) AS total_incomes FROM incomes_2; """
     get_expenses_query = """ select earned_at,amount,categories from incomes where user_id = %s AND earned_at BETWEEN %s AND %s order by created_at desc limit 10; """
-    record_to_insert = (user_id, start_date.strftime(
-        "%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+    record_to_insert = (user_id, start_date, end_date)
     cursor.execute(get_expenses_query, record_to_insert)
 
     connection.commit()
-    amount = cursor.fetchone()
-    print("For month you earned ₴" + str(amount[0]) + ".")
-    return amount[0] or 0
+    return cursor.fetchall()
 
   except (Exception, psycopg2.Error) as error:
       print("Failed to execute SQL", error)
@@ -108,7 +97,6 @@ def prepare_args(user_id, created_at, operation_type, amount, categories, commen
 
   push_to_db(query, record_to_insert)
 
-  # also return the sum of income and expense
   return "New <b>" + operation_name + " ₴" + str(int(amount)) + "</b> with category <b>" + ", ".join(categories) + "</b> successfully added."
 
 def sample_responses(input_text, user_id):
@@ -120,13 +108,7 @@ def sample_responses(input_text, user_id):
   re_comment = "+\s+([\w]{1,})"
 # comment = re.findall(r"\"(.*?)\"", user_message)
   if user_message in ("hello", "hi", "привіт"):
-    # print('user message:', user_message)
     return "Hey! How's it going?"
-
-  if user_message in ("time", "time?"):
-    now = datetime.now()
-    date_time = now.strftime("%d/%m/%y")
-    return str(date_time)
 
   if re.match(re_date+re_type+re_amount+re_category+re_comment, user_message):
     created_at, operation_type, amount, categories, comment = re.split("\s", user_message, 4)
