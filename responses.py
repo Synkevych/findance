@@ -37,7 +37,7 @@ def get_expenses_by_month(user_id, start_date, end_date):
                                   password=keys.DB_PASSWORD, host=keys.DB_HOST, port='5432')
     cursor = connection.cursor()
 
-    get_expenses_query = """ select spent_at, amount, categories from expenses where user_id = %s AND spent_at BETWEEN %s AND %s order by created_at desc limit 20; """
+    get_expenses_query = """ select spent_at, amount, categories from expenses where user_id = %s AND spent_at BETWEEN %s AND %s order by spent_at desc limit 20; """
     record_to_insert = (user_id, start_date, end_date)
     cursor.execute(get_expenses_query, record_to_insert)
 
@@ -61,7 +61,7 @@ def get_incomes_by_month(user_id, start_date, end_date):
                                   password=keys.DB_PASSWORD, host=keys.DB_HOST, port='5432')
     cursor = connection.cursor()
 
-    get_expenses_query = """ select earned_at,amount,categories from incomes where user_id = %s AND earned_at BETWEEN %s AND %s order by created_at desc limit 10; """
+    get_expenses_query = """ select earned_at,amount,categories from incomes where user_id = %s AND earned_at BETWEEN %s AND %s order by earned_at desc limit 20; """
     record_to_insert = (user_id, start_date, end_date)
     cursor.execute(get_expenses_query, record_to_insert)
 
@@ -128,4 +128,4 @@ def sample_responses(input_text, user_id):
     operation_type, amount, categories = re.split("\s", user_message, 2)
     return prepare_args(user_id, today, operation_type, amount, categories)
 
-  return "I don\'t understand your message, type /help to get more info."
+  return "I don\'t understand your message, \"" + input_text + "\".\nType /help to get more info."

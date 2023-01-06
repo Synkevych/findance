@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import constants as keys
 from telegram.ext import *
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -48,7 +46,6 @@ Example of adding a new income in the current day:
 <b>+ 1000 work,olx,repair</b>""", parse_mode='HTML')
 
 def expenses_menu(update, context):
-  print('used expenses_menu')
   user_id = update.callback_query.message.chat.id
   expenses = R.get_expenses_by_month(user_id,
                                      start_date.strftime("%Y-%m-%d"),
@@ -65,7 +62,6 @@ def expenses_menu(update, context):
   update.callback_query.message.reply_text(response_message, parse_mode='HTML')
 
 def expenses_command(update, context):
-  print('used expenses_command')
   if hasattr(update.message, 'chat'):
     user_id = update.message.chat.id
     expenses = R.get_expenses_by_month(user_id,
@@ -84,14 +80,35 @@ def expenses_command(update, context):
   else:
     print("Failed to execute command.")
 
+def prev_expenses_command(update, context):
+  if hasattr(update.message, 'chat'):
+    user_id = update.message.chat.id
+    end_date = today.replace(day=1)-timedelta(days=1)
+    start_date = end_date.replace(day=1)
+    expenses = R.get_expenses_by_month(user_id,
+                                       start_date.strftime("%Y-%m-%d"),
+                                       end_date.strftime("%Y-%m-%d"))
+    response_message = 'In <b>' + \
+        start_date.strftime(
+            "%B %Y") + "</b > you spent:\n\n № | day | amount | categories \n"
+    sum_amount = 0
+    for count, expense in enumerate(expenses, start=1):
+      response_message = response_message + \
+          ' ' + str(count).ljust(6, ' ') + expense[0].strftime("%-d").ljust(7, ' ') + \
+          str(expense[1]).ljust(9, ' ') + ' ' + ', '.join(expense[2]) + ' \n'
+      sum_amount += expense[1]
+    response_message += "\nThe sum of all expenses <b>₴" + \
+        str(sum_amount) + "</b>."
+    update.message.reply_text(response_message, parse_mode='HTML')
+  else:
+    print("Failed to execute command.")
+
 def incomes_menu(update, context):
-  breakpoint()
   if hasattr(update.callback_query.message, 'chat'):
     user_id = update.callback_query.message.chat.id
     incomes = R.get_incomes_by_month(user_id,
                                      start_date.strftime("%Y-%m-%d"),
                                      end_date.strftime("%Y-%m-%d"))
-    breakpoint()
     if not incomes:
       update.callback_query.message.reply_text(
           "You did not earn anything in the current month. Get up your but and make some money!")
@@ -115,7 +132,6 @@ def incomes_menu(update, context):
      print("Failed to execute "+str(update.message)+" command.")
 
 def incomes_command(update, context):
-  print('context',context)
   if hasattr(update.message, 'chat'):
     user_id = update.message.chat.id
     incomes = R.get_incomes_by_month(user_id,
@@ -192,6 +208,7 @@ def main():
   dp.add_handler(CommandHandler("expenses", expenses_command))
   dp.add_handler(CommandHandler("incomes", incomes_command))
   dp.add_handler(CommandHandler("prev_incomes", prev_incomes_command))
+  dp.add_handler(CommandHandler("prev_expenses", prev_expenses_command))
   dp.add_handler(CallbackQueryHandler(expenses_menu, pattern="expenses"))
   dp.add_handler(CallbackQueryHandler(incomes_menu, pattern="incomes"))
 
