@@ -128,4 +128,4 @@ def sample_responses(input_text, user_id):
     operation_type, amount, categories = re.split("\s", user_message, 2)
     return prepare_args(user_id, today, operation_type, amount, categories)
 
-  return "I don\'t understand your message, \"" + input_text + "\".\nType /help to get more info."
+  return "I don\'t understand your message,\"" + input_text + "\".\nType /help to get more info."
